@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NFC 电量科普 - 碰一下支付</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body {
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+
+    /* 动画关键帧 */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.6; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    @keyframes slide-up-fade {
+      0% { opacity: 0; transform: translateY(30px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* NFC 波纹 */
+    .nfc-ring {
+      position: absolute;
+      border: 2px solid rgba(22, 119, 255, 0.4);
+      border-radius: 50%;
+      animation: pulse-ring 2s infinite;
+    }
+
+    .nfc-ring:nth-child(2) { animation-delay: 0.4s; }
+    .nfc-ring:nth-child(3) { animation-delay: 0.8s; }
+
+    /* 漂浮动画 */
+    .float-icon {
+      animation: float 2.5s ease-in-out infinite;
+    }
+
+    /* 滚动触发动画 */
+    .scroll-reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.5s ease-out;
+    }
+
+    .scroll-reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* 进度条 */
+    .scroll-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 2px;
+      background: linear-gradient(to right, #1677FF, #1890FF);
+      z-index: 1000;
+      transition: width 0.1s ease-out;
+    }
+
+    /* 卡片样式 */
+    .feature-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      border: 1px solid rgba(22, 119, 255, 0.1);
+    }
+
+    /* 滑块样式 */
+    .slider-track {
+      height: 4px;
+      background: #e5e7eb;
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .slider-fill {
+      height: 100%;
+      background: #1677FF;
+      border-radius: 2px;
+      transition: width 0.1s ease-out;
+    }
+
+    .slider-thumb {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 18px;
+      height: 18px;
+      background: white;
+      border: 2.5px solid #1677FF;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    /* 长按按钮动画 */
+    .hold-btn {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hold-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, rgba(255,255,255,0.3), rgba(255,255,255,0.5));
+      transform: translateX(-100%);
+    }
+
+    .hold-btn.holding::after {
+      animation: scan-move 0.5s linear infinite;
+    }
+
+    @keyframes scan-move {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* 模式按钮 */
+    .mode-btn.active {
+      background: #FEF3C7;
+      border-color: #FCD34D;
+    }
+
+    /* divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, #e5e7eb, transparent);
+      margin: 32px 0;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-b from-yellow-50 via-white to-blue-50">
+
+  <!-- 滚动进度条 -->
+  <div class="scroll-progress" id="scroll-progress" style="width: 0%"></div>
+
+  <!-- 顶部品牌 -->
+  <header class="fixed top-0 left-0 right-0 z-100 pt-3 pb-2 bg-white/90 backdrop-blur-md">
+    <div class="text-center">
+      <div class="text-lg font-bold text-blue-600">
+        <span class="text-xl">🔋</span> NFC 电量科普
+      </div>
+    </div>
+  </header>
+
+  <!-- 主内容 -->
+  <main class="pt-10 pb-20">
+
+    <!-- Section 1: 首屏 - NFC 和耗电 -->
+    <section class="px-5 py-4 relative">
+
+      <!-- 头部：标题 -->
+      <div class="mb-4 scroll-reveal">
+        <!-- 标题文案 -->
+        <div class="text-center">
+          <h1 class="text-lg font-bold text-gray-800 mb-1">
+            手机 NFC 一直开着，费电吗？
+          </h1>
+        </div>
+      </div>
+
+      <!-- 下滑提示 -->
+      <div class="text-center text-gray-400 text-xs scroll-reveal mb-3" style="transition-delay: 0.2s;">
+        <span>试试下面三个互动实验，10 秒看懂 NFC</span>
+        <div class="mt-1 text-base">⌄⌄⌄</div>
+      </div>
+    </section>
+
+    <!-- Section 2: 三种互动方案对比 -->
+    <section class="py-6 px-5 bg-gradient-to-b from-yellow-50 to-white">
+      <div class="max-w-sm mx-auto">
+
+        
+        <!-- 方案 A: 碰一下互动 -->
+        <div class="feature-card scroll-reveal mb-4">
+          <div class="flex items-center gap-2.5 mb-3">
+            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-lg flex-shrink-0">
+              👆
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-800 text-sm">实验 1：碰一下支付</h3>
+              <p class="text-[10px] text-gray-500">模拟 NFC 支付场景，看看耗多少电</p>
+            </div>
+          </div>
+
+          <!-- 电池 + 按钮 -->
+          <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+            <p class="text-[11px] text-gray-600 text-center mb-3">长按模拟"碰一下"，看看耗电多少</p>
+
+            <!-- 电池进度条 -->
+            <div class="flex items-center gap-3 mb-4">
+              <div class="relative flex-1 h-8 border-2 border-gray-600 rounded-lg p-1 bg-white overflow-hidden">
+                <div class="battery-bar h-full bg-green-500 rounded transition-all duration-300" id="battery-bar-a" style="width: 100%"></div>
+              </div>
+              <div class="text-lg font-bold text-gray-700"><span id="battery-percent-a">100.00</span>%</div>
+            </div>
+
+            <!-- 互动按钮 -->
+            <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl text-sm font-medium transition-colors mb-3"
+                    id="tap-button-a">
+              长按模拟碰一下
+            </button>
+
+            <!-- 统计显示 -->
+            <div class="text-center">
+              <p class="text-[11px] text-gray-500 mb-1">已模拟 <span id="tap-count-a" class="font-bold text-gray-700">0</span> 次</p>
+              <p id="power-result-a" class="text-[11px] text-blue-700 font-medium"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 方案 B: 时长选择器 -->
+        <div class="feature-card scroll-reveal mb-4">
+          <div class="flex items-center gap-2.5 mb-3">
+            <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-lg flex-shrink-0">
+              ⏱️
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-800 text-sm">实验 2：不同时长耗电量</h3>
+              <p class="text-[10px] text-gray-500">NFC 功能开启后，不同使用时间电量对比</p>
+            </div>
+          </div>
+
+          <div class="bg-yellow-50 rounded-lg p-4 border border-yellow-100">
+            <!-- 时长选择按钮 -->
+            <p class="text-[11px] text-gray-600 text-center mb-3">选一个时长，看看耗电多少</p>
+            <div class="grid grid-cols-3 gap-2 mb-4">
+              <button class="duration-btn px-3 py-2 rounded-full text-xs font-medium border border-yellow-300 text-yellow-700 hover:bg-yellow-200 transition bg-white" data-hours="1">
+                1 小时
+              </button>
+              <button class="duration-btn px-3 py-2 rounded-full text-xs font-medium border border-yellow-300 text-yellow-700 hover:bg-yellow-200 transition bg-white" data-hours="2">
+                2 小时
+              </button>
+              <button class="duration-btn px-3 py-2 rounded-full text-xs font-medium border border-yellow-300 text-yellow-700 hover:bg-yellow-200 transition bg-white" data-hours="4">
+                4 小时
+              </button>
+              <button class="duration-btn px-3 py-2 rounded-full text-xs font-medium border border-yellow-300 text-yellow-700 hover:bg-yellow-200 transition bg-white" data-hours="8">
+                8 小时
+              </button>
+              <button class="duration-btn px-3 py-2 rounded-full text-xs font-medium border border-yellow-300 text-yellow-700 hover:bg-yellow-200 transition bg-white" data-hours="12">
+                12 小时
+              </button>
+              <button class="duration-btn px-3 py-2 rounded-full text-xs font-medium border border-yellow-300 text-yellow-700 hover:bg-yellow-200 transition bg-white" data-hours="24">
+                24 小时
+              </button>
+            </div>
+
+            <!-- 电量显示 -->
+            <div class="bg-white rounded-lg p-3">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="relative flex-1 h-8 border-2 border-gray-600 rounded-lg p-1 bg-white overflow-hidden">
+                  <div class="battery-bar h-full bg-green-500 rounded transition-all duration-300" id="battery-level-b" style="width: 100%"></div>
+                </div>
+                <span class="text-lg font-bold text-gray-700"><span id="battery-percent-b">100.00</span>%</span>
+              </div>
+              <!-- 结果说明 -->
+              <div class="text-center mt-2">
+                <p id="duration-result" class="text-[11px] text-yellow-700 font-medium"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 实验 3：折腾这么久，省了多少？ -->
+        <div class="feature-card scroll-reveal mb-4">
+          <div class="flex items-center gap-2.5 mb-3">
+            <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-lg flex-shrink-0">
+              🕒
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-800 text-sm">实验 3：折腾这么久，省了多少？</h3>
+              <p class="text-[10px] text-gray-500">频繁开关一个月，省的电够做什么？</p>
+            </div>
+          </div>
+
+          <div class="bg-orange-50 rounded-lg p-4 border border-orange-100">
+            <!-- 次数选择器 -->
+            <p class="text-[11px] text-gray-600 text-center mb-3">你每天大约开关几次 NFC？</p>
+            <div class="grid grid-cols-6 gap-1 mb-4 freq-btns">
+              <button class="freq-btn px-2 py-1.5 rounded text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-100 transition bg-white" data-freq="1">1 次</button>
+              <button class="freq-btn px-2 py-1.5 rounded text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-100 transition bg-white" data-freq="3">3 次</button>
+              <button class="freq-btn px-2 py-1.5 rounded text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-100 transition bg-white" data-freq="5">5 次</button>
+              <button class="freq-btn px-2 py-1.5 rounded text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-100 transition bg-white" data-freq="10">10 次</button>
+              <button class="freq-btn px-2 py-1.5 rounded text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-100 transition bg-white" data-freq="20">20 次</button>
+              <button class="freq-btn px-2 py-1.5 rounded text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-100 transition bg-white" data-freq="custom">自定</button>
+            </div>
+
+            <!-- 一个月省电 -->
+            <div class="bg-white rounded-xl p-4 border border-orange-100 mb-3">
+              <p class="text-xs text-gray-600 text-center mb-3">一个月省的电</p>
+              <div class="bg-orange-50 rounded-lg p-4">
+                <p class="text-base font-semibold text-orange-600 text-center" id="month-scenario">📱 这点电，够刷 118 秒短视频</p>
+              </div>
+            </div>
+
+            <!-- 结论文案 -->
+            <div class="text-center mt-4">
+              <p class="text-sm font-semibold text-gray-700">💭 省这么点，值得每天折腾吗？</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section 3: 总结 + 引导 -->
+    <section class="py-6 px-5 bg-white">
+      <div class="max-w-sm mx-auto">
+
+        <div class="bg-gradient-to-r from-blue-50 to-green-50 rounded-xl p-4 text-center scroll-reveal">
+          <div class="text-3xl mb-2">✅</div>
+          <h3 class="text-sm font-bold text-gray-800 mb-1">NFC 真的不费电！</h3>
+          <p class="text-xs text-gray-600 mb-3">
+            常开 NFC，享受"碰一下"的便捷体验
+          </p>
+          <button onclick="openNFCSettings()"
+                  class="w-full bg-blue-500 hover:bg-blue-600 text-white px-6 py-2.5 rounded-full text-sm font-medium transition-colors shadow-lg">
+            去打开 NFC
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 底部信息 -->
+    <footer class="py-4 px-5 text-center text-[10px] text-gray-400 bg-gradient-to-b from-white to-blue-50">
+      <p>本服务由支付宝提供</p>
+      <p class="mt-1">遇到问题？<a href="#" class="text-blue-500 underline">联系客服</a></p>
+    </footer>
+
+  </main>
+
+  <script src="../src/power-education.js"></script>
+</body>
+</html>
